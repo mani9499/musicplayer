@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Player</title>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        body {
+            margin: 0px;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .app {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            width: 35%;
+            height: 100vh;
+        }
+        .music-container {
+            width: 65%;
+            background-image: linear-gradient(45deg, black, rgb(79, 63, 63));
+            overflow-y: auto;
+        }
+        .main {
+            background-image: linear-gradient(45deg, skyblue, yellow);
+            width: 100%;
+            height: 80%;
+        }
+        .player {
+            background-color: rgb(58, 19, 255);
+            width: 100%;
+            height: 20%;
+        }
+        .player button {
+            background-color: transparent;
+            color: white;
+            border: 0px;
+            height: 50px;
+            font-size: 40px;
+            border-radius: 100%;
+        }
+        .player input[type='range'] {
+            width: 80%;
+        }
+        .song-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .song-item {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .song-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            fetch("/music")
+                .then(response => response.json())
+                .then(songs => {
+                    const musicContainer = document.querySelector(".music-container");
+                    const songList = document.createElement("ul");
+                    songList.className = "song-list";
+                    
+                    songs.forEach((song, index) => {
+                        const songItem = document.createElement("li");
+                        songItem.className = "song-item";
+                        songItem.textContent = song;
+                        songItem.onclick = () => playSong(index);
+                        songList.appendChild(songItem);
+                    });
+
+                    musicContainer.appendChild(songList);
+                    window.songs = songs;
+                })
+                .catch(error => console.error("Error loading songs:", error));
+                setInterval(update,1000);
+        });
+
+        let currentSongIndex = 0;
+
+        function play() {
+            const player = document.getElementById("player");
+            const pbutton = document.getElementById("pbutton");
+
+            if (player.paused) {
+                player.play();
+                pbutton.innerHTML = '<i class="ri-pause-line"></i>';
+            } else {
+                player.pause();
+                pbutton.innerHTML = '<i class="ri-play-line"></i>';
+            }
+        }
+
+        function update() {
+            const player = document.getElementById("player");
+            const start = document.getElementById("played");
+            const end = document.getElementById("total");
+
+            start.textContent = formatTime(player.currentTime);
+            end.textContent = formatTime(player.duration);
+
+            const bar = document.getElementById("jump");
+            if (!isNaN(player.duration)) {
+                bar.value = (player.currentTime * 100) / player.duration;
+            }
+        }
+
+        function formatTime(time) {
+            const minutes = Math.floor(time / 60);
+            const seconds = Math.floor(time % 60);
+            return `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        }
+
+        function updatejump() {
+            const player = document.getElementById("player");
+            const bar = document.getElementById("jump");
+
+            const njump = player.duration * (bar.value / 100);
+            player.currentTime = njump;
+        }
+
+        function playSong(index) {
+            currentSongIndex = index;
+            const player = document.getElementById("player");
+            const source = document.getElementById("audio-source");
+            source.src = `/music/${window.songs[index]}`;
+            player.load();
+            play();
+            document.getElementById("pbutton").innerHTML = '<i class="ri-pause-line"></i>';
+        }
+    </script>
+</head>
+<body>
+    <div class="app">
+        <div class="music-container"></div>
+        <div class="container">
+            <div class="main"></div>
+            <div class="player">
+                <audio id="player">
+                    <source id="audio-source" src="" type="audio/mpeg">
+                </audio>
+                <center>
+                    <button onclick="play()" id="pbutton"><i class="ri-play-line"></i></button>
+                    <br>
+                    <label id="played">00:00</label>
+                    <input type="range" min="0" value="0" max="100" step="0.1" id="jump" onchange="updatejump(event)">
+                    <label id="total">00:00</label>
+                </center>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
